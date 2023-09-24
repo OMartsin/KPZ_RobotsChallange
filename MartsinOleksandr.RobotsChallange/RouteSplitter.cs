@@ -13,15 +13,57 @@ public class RouteSplitter
         {
             return end;
         }
-        else
+        var deltaX = end.X - current.X;
+        var deltaY = end.Y - current.Y;
+        if (Math.Abs(deltaX) + Math.Abs(deltaY) >= remainingEnergy)
         {
-            int dx = end.X - current.X;
-            int dy = end.Y - current.Y;
-            int maxDistance = (int)Math.Sqrt(remainingEnergy);
-            int nextX = current.X + (int)Math.Round(dx * (maxDistance / (double)distance));
-            int nextY = current.Y + (int)Math.Round(dy * (maxDistance / (double)distance));
-            Position nextPosition = new Position(nextX, nextY);
-            return nextPosition;
+            return null;
         }
+        double stepEnergy = deltaX * deltaX + deltaY * deltaY;
+        var steps = (int)((stepEnergy / remainingEnergy ));
+        var stepX = deltaX / steps;
+        var stepY = deltaY / steps;
+        if (stepX != current.X || stepY != current.Y || distance == 0)
+            return new Position(current.X + stepX, current.Y + stepY);
+        if (deltaX != 0)
+        {
+            stepX = Math.Sign(deltaX) * 1;
+        }
+        if (deltaY != 0)
+        {
+            stepY = Math.Sign(deltaY) * 1;
+        }
+        return new Position(current.X + stepX, current.Y + stepY);
+    }
+    
+    public static Position OptimalStepsSplitter(Position start, Position end)
+    {
+        Position current = start;
+        var deltaX = end.X - current.X;
+        var deltaY = end.Y - current.Y;
+        var maxSteps = 4;
+        var maxXDistance = Math.Abs(deltaX) > maxSteps ? maxSteps * Math.Sign(deltaX) : deltaX;
+        var maxYDistance = Math.Abs(deltaY) > maxSteps ? maxSteps * Math.Sign(deltaY) : deltaY;
+        return new Position(current.X + maxXDistance, current.Y + maxYDistance);
+    }
+    
+    public static int CalculateEnergyForOptimalStepsSplitter(Position start, Position end)
+    {
+        var deltaX = end.X - start.X;
+        var deltaY = end.Y - start.Y;
+        var maxSteps = 4;
+        var totalEnergy = 0;
+
+        while (deltaX != 0 || deltaY != 0)
+        {
+            var maxXDistance = Math.Abs(deltaX) > maxSteps ? maxSteps * Math.Sign(deltaX) : deltaX;
+            var maxYDistance = Math.Abs(deltaY) > maxSteps ? maxSteps * Math.Sign(deltaY) : deltaY;
+            totalEnergy += (int)(Math.Sqrt(maxXDistance * maxXDistance + maxYDistance * maxYDistance));
+
+            deltaX -= maxXDistance;
+            deltaY -= maxYDistance;
+        }
+
+        return totalEnergy;
     }
 }

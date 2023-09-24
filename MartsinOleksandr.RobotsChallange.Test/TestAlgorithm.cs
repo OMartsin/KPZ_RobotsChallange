@@ -39,6 +39,7 @@ namespace MartsinOleksandr.RobotsChallange.Test
             Assert.IsTrue(command is CollectEnergyCommand);
         }
         
+        
         [Test]
         public void TestNearbyOccupiedByAnotherStationCommand()
         {
@@ -51,8 +52,8 @@ namespace MartsinOleksandr.RobotsChallange.Test
                 new Robot.Common.Robot() { Energy = 200, Position = new Position(3, 2) },
                 new Robot.Common.Robot() { Energy = 200, Position = new Position(4, 4) }
             };
-            var command = algorithm.DoStep(robots, 0, map);
-            Assert.IsTrue(command is MoveCommand);
+            var command = algorithm.DoStep(robots, 1, map);
+            Assert.IsTrue(command is CollectEnergyCommand);
         }
 
         [Test]
@@ -78,7 +79,7 @@ namespace MartsinOleksandr.RobotsChallange.Test
             map.Stations.Add(new EnergyStation() { Energy = 1000, Position = stationPosition, RecoveryRate = 2 });
             var robots = new List<Robot.Common.Robot>()
             {
-                new Robot.Common.Robot() { Energy = 50, Position = new Position(2, 3) }
+                new Robot.Common.Robot() { Energy = 75, Position = new Position(2, 3) }
             };
             var command = algorithm.DoStep(robots, 0, map);
             Assert.IsTrue(command is MoveCommand);
@@ -100,22 +101,28 @@ namespace MartsinOleksandr.RobotsChallange.Test
             var command = algorithm.DoStep(robots, 0, map);
             Assert.IsTrue(command is CollectEnergyCommand); // Expect MoveCommand with multiple stations.
         }
+
+        [Test]
+        public void TestAuthor()
+        {
+            Assert.AreEqual("Martsin Oleksandr", new MartsinAlgorithm().Author);
+        }
         
         [Test]
         public void TestMoveCommand_MultipleStationsWithOccupiedPlace()
         {
             var algorithm = new MartsinAlgorithm();
             var map = new Map();
-            var station1Position = new Position(4, 10);
+            var station1Position = new Position(10, 10);
             var station2Position = new Position(10, 4);
-            map.Stations.Add(new EnergyStation() { Energy = 500, Position = station1Position});
-            map.Stations.Add(new EnergyStation() { Energy = 500, Position = station2Position });
+            map.Stations.Add(new EnergyStation() { Energy = 3000, Position = station1Position});
+            map.Stations.Add(new EnergyStation() { Energy = 30, Position = station2Position });
             var robots = new List<Robot.Common.Robot>()
             {
-                new Robot.Common.Robot() { Energy = 200, Position = new Position(10, 4) },
-                new Robot.Common.Robot() { Energy = 200, Position = new Position(10, 5) }
+                new Robot.Common.Robot() { Energy = 200, Position = new Position(10, 4), OwnerName = "Alex"},
+                new Robot.Common.Robot() { Energy = 200, Position = new Position(10, 5), OwnerName = "Alex2"}
             };
-            var command = algorithm.DoStep(robots, 1, map);
+            var command = algorithm.DoStep(robots, 0, map);
             Assert.IsTrue(command is MoveCommand); 
         }
 
@@ -125,11 +132,11 @@ namespace MartsinOleksandr.RobotsChallange.Test
             var algorithm = new MartsinAlgorithm();
             var map = new Map();
             var station1Position = new Position(1, 2);
-            var station2Position = new Position(12, 4);
-            var station3Position = new Position(12, 6);
-            map.Stations.Add(new EnergyStation() { Energy = 500, Position = station1Position});
-            map.Stations.Add(new EnergyStation() { Energy = 500, Position = station2Position });
-            map.Stations.Add( new EnergyStation(){Energy = 500, Position = station3Position});
+            var station2Position = new Position(5, 4);
+            var station3Position = new Position(5, 6);
+            map.Stations.Add(new EnergyStation() { Energy = 30, Position = station1Position});
+            map.Stations.Add(new EnergyStation() { Energy = 39, Position = station2Position });
+            map.Stations.Add( new EnergyStation(){ Energy = 46, Position = station3Position});
             var robots = new List<Robot.Common.Robot>()
             {
                 new Robot.Common.Robot() { Energy = 200, Position = new Position(2, 3) }
@@ -142,11 +149,26 @@ namespace MartsinOleksandr.RobotsChallange.Test
         {
             var algorithm = new MartsinAlgorithm();
             var map = new Map();
-            var stationPosition = new Position(100, 2);
+            var stationPosition = new Position(10, 2);
             map.Stations.Add(new EnergyStation() { Energy = 1000, Position = stationPosition, RecoveryRate = 2 });
             var robots = new List<Robot.Common.Robot>()
             {
-                new Robot.Common.Robot() { Energy = 0, Position = new Position(2, 3) } // Low energy robot
+                new Robot.Common.Robot() { Energy = 20, Position = new Position(2, 3) } // Low energy robot
+            };
+            var command = algorithm.DoStep(robots, 0, map);
+            Assert.IsTrue(command is MoveCommand);
+        }
+        
+        [Test]
+        public void TestMoveCommand_LowEnergyNearStation()
+        {
+            var algorithm = new MartsinAlgorithm();
+            var map = new Map();
+            var stationPosition = new Position(6, 2);
+            map.Stations.Add(new EnergyStation() { Energy = 1000, Position = stationPosition, RecoveryRate = 2 });
+            var robots = new List<Robot.Common.Robot>()
+            {
+                new Robot.Common.Robot() { Energy = 20, Position = new Position(2, 3) } // Low energy robot
             };
             var command = algorithm.DoStep(robots, 0, map);
             Assert.IsTrue(command is MoveCommand);
@@ -174,7 +196,7 @@ namespace MartsinOleksandr.RobotsChallange.Test
             var robots = new List<Robot.Common.Robot>()
             {
                 new Robot.Common.Robot() { Energy = 200, Position = new Position(2, 3) , OwnerName = "Alex"} ,
-                new Robot.Common.Robot() { Energy = 200, Position = new Position(5, 3) , OwnerName = "Another owner"} 
+                new Robot.Common.Robot() { Energy = 1000, Position = new Position(5, 3) , OwnerName = "Another owner"} 
             };
             var command = algorithm.DoStep(robots, 0, map);
             Assert.IsTrue(command is MoveCommand);

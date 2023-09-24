@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using MartsinOleksandr.RobotsChallange.Properties;
 using Robot.Common;
@@ -20,20 +21,24 @@ namespace MartsinOleksandr.RobotsChallange
             _robotToMoveIndex = robotToMoveIndex;
         }
 
-        public Dictionary<ChargePointInfo, int> SearchStationsInfo()
+        public Dictionary<ChargePointInfo, int> SearchFreeStationsInfo()
         {
-            IList<EnergyStation> stationsByRadius = _map.Stations;
+            IList<EnergyStation> stations = _map.Stations;
             var stationCoverageMap = new Dictionary<ChargePointInfo, int>();
-            foreach (var inRadiusStation in stationsByRadius)
+            foreach (var station in stations)
             {
-                for (var chargePointX = inRadiusStation.Position.X - CollectionRange;
-                     chargePointX < inRadiusStation.Position.X + CollectionRange; ++chargePointX)
+                if (!IsStationFree(station))
                 {
-                    for (var chargePointY = inRadiusStation.Position.Y - CollectionRange;
-                         chargePointY < inRadiusStation.Position.Y + CollectionRange; ++chargePointY)
+                    continue;
+                }
+                for (var chargePointX = station.Position.X - CollectionRange;
+                     chargePointX < station.Position.X + CollectionRange; ++chargePointX)
+                {
+                    for (var chargePointY = station.Position.Y - CollectionRange;
+                         chargePointY < station.Position.Y + CollectionRange; ++chargePointY)
                     {
                         Position chargePosition = new Position(chargePointX, chargePointY);
-                        var chargePositionInfo = new ChargePointInfo(chargePosition, IsCellFree(chargePosition), 
+                        var chargePositionInfo = new ChargePointInfo(chargePosition, station,
                                 DistanceHelper.FindDistance(chargePosition,_robots[_robotToMoveIndex].Position));
                         if (stationCoverageMap.ContainsKey(chargePositionInfo))
                         {
@@ -49,33 +54,37 @@ namespace MartsinOleksandr.RobotsChallange
             return stationCoverageMap.OrderByDescending(kv => kv.Value)
                 .ToDictionary(kv => kv.Key, kv => kv.Value);;
         }
-
-        // public IList<EnergyStation> GetStationsByRadius(int radius)
-        // {
-        //     var centrePosition = _robots[_robotToMoveIndex].Position;
-        //     var maxX = centrePosition.X + radius;
-        //     var minX = centrePosition.X - radius;
-        //     var maxY = centrePosition.Y + radius;
-        //     var minY = centrePosition.Y - radius;
-        //     var stationsByRadius = new List<EnergyStation>();
-        //     foreach (var station in _map.Stations)
-        //     {
-        //         if ((station.Position.X >= minX && station.Position.X <= maxX) &&
-        //             (station.Position.Y >= minY && station.Position.Y <= maxY))
-        //         {
-        //             stationsByRadius.Add(station);
-        //         }
-        //     }
-        //     return stationsByRadius;
-        // }
-        public bool IsCellFree(Position cell)
+        
+        private bool IsStationFree(EnergyStation station)
         {
             foreach (var robot in _robots)
             {
-                if (robot.Position == cell)
+                if(_robots.IndexOf(robot) == _robotToMoveIndex) continue;
+                if (robot.Position.X >= station.Position.X - CollectionRange &&
+                    robot.Position.X <= station.Position.X + CollectionRange &&
+                    robot.Position.Y <= station.Position.Y + CollectionRange &&
+                    robot.Position.Y >= station.Position.Y - CollectionRange)
                     return false;
             }
             return true;
+        }
+        
+        public int SearchStationsCountInCollectRadius()
+        {
+            var count = 0;
+            var currRobotPosition = _robots[_robotToMoveIndex].Position;
+            foreach (var station in _map.Stations)
+            {
+                if(IsStationFree(station) &&
+                   station.Position.X >= currRobotPosition.X - CollectionRange &&
+                   station.Position.X <= currRobotPosition.X + CollectionRange &&
+                   station.Position.Y >= currRobotPosition.Y - CollectionRange &&
+                   station.Position.Y <= currRobotPosition.Y + CollectionRange)
+                {
+                    ++count;
+                }
+            }
+            return count;
         }
 
         public Dictionary<Robot.Common.Robot, int> SearchDistanceToRobots()
@@ -83,10 +92,27 @@ namespace MartsinOleksandr.RobotsChallange
             var robotsDictionary = new Dictionary<Robot.Common.Robot, int>();
             foreach (var robot in _robots)
             {
-                robotsDictionary.Add(robot,DistanceHelper.FindDistance(robot.Position,
-                    _robots[_robotToMoveIndex].Position));
+                if (!string.Equals(robot.OwnerName, _robots[_robotToMoveIndex].OwnerName))
+                {
+                    robotsDictionary.Add(robot,DistanceHelper.FindDistance(robot.Position,
+                        _robots[_robotToMoveIndex].Position));
+                }
             }
             return robotsDictionary;
+        }
+
+        public int CountMyRobots()
+        {
+            int count = 0;
+            foreach (var robot in _robots)
+            {
+                if (string.Equals(robot.OwnerName, _robots[_robotToMoveIndex].OwnerName))
+                {
+                    ++count;
+                }
+            }
+
+            return count;
         }
     }
 }

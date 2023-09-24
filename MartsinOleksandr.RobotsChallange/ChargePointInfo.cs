@@ -5,16 +5,15 @@ namespace MartsinOleksandr.RobotsChallange.Properties
     public class ChargePointInfo
     {
         public Position Position { get; }
-
-        public bool IsFree { get; }
-
+        
+        public EnergyStation Station { get;  }
         public int Distance { get; }
 
-        public ChargePointInfo(Position position, bool isFree, int distance)
+        public ChargePointInfo(Position position, EnergyStation station, int distance)
         {
             Position = position;
-            IsFree = isFree;
             Distance = distance;
+            Station = station;
         }
 
         public override bool Equals(object obj)
@@ -25,7 +24,7 @@ namespace MartsinOleksandr.RobotsChallange.Properties
 
         protected bool Equals(ChargePointInfo other)
         {
-            return Equals(Position, other.Position) && IsFree == other.IsFree && Distance == other.Distance;
+            return Equals(Position, other.Position);
         }
 
         public override int GetHashCode()
@@ -33,7 +32,6 @@ namespace MartsinOleksandr.RobotsChallange.Properties
             unchecked
             {
                 var hashCode = (Position != null ? Position.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ IsFree.GetHashCode();
                 hashCode = (hashCode * 397) ^ Distance;
                 return hashCode;
             }
