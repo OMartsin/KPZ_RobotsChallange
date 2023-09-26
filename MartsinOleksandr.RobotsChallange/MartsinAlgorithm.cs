@@ -7,7 +7,6 @@ namespace MartsinOleksandr.RobotsChallenge
     {
         public RobotCommand DoStep(IList<Robot.Common.Robot> robots, int robotToMoveIndex, Map map)
         {
-            robots[robotToMoveIndex].Energy = 10000;
             var decisionMaker = new DecisionMaker(map, robots, robotToMoveIndex);
             return decisionMaker.MakeDecision();
         }
