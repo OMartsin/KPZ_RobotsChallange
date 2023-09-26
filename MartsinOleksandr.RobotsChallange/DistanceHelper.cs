@@ -1,7 +1,7 @@
 ﻿using System;
 using Robot.Common;
 
-namespace MartsinOleksandr.RobotsChallange
+namespace MartsinOleksandr.RobotsChallenge
 {
     public class DistanceHelper
     {

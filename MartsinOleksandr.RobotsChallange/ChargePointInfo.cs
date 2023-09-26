@@ -1,19 +1,19 @@
 ﻿using Robot.Common;
 
-namespace MartsinOleksandr.RobotsChallange.Properties
+namespace MartsinOleksandr.RobotsChallenge.Properties
 {
     public class ChargePointInfo
     {
         public Position Position { get; }
         
-        public EnergyStation Station { get;  }
+        public EnergyStation[] Stations { get; set; }
         public int Distance { get; }
 
-        public ChargePointInfo(Position position, EnergyStation station, int distance)
+        public ChargePointInfo(Position position, EnergyStation[] stations, int distance)
         {
             Position = position;
             Distance = distance;
-            Station = station;
+            Stations = stations;
         }
 
         public override bool Equals(object obj)

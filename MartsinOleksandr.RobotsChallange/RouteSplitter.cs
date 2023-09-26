@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MartsinOleksandr.RobotsChallange;
+using MartsinOleksandr.RobotsChallenge;
 using Robot.Common;
 
 public class RouteSplitter
@@ -51,7 +51,7 @@ public class RouteSplitter
     {
         var deltaX = end.X - start.X;
         var deltaY = end.Y - start.Y;
-        var maxSteps = 4;
+        var maxSteps = 3;
         var totalEnergy = 0;
 
         while (deltaX != 0 || deltaY != 0)
@@ -65,5 +65,25 @@ public class RouteSplitter
         }
 
         return totalEnergy;
+    }
+    
+    public static int CalculateStepsForOptimalStepsSplitter(Position start, Position end)
+    {
+        var deltaX = end.X - start.X;
+        var deltaY = end.Y - start.Y;
+        var maxSteps = 3;
+        var steps = 0;
+
+        while (deltaX != 0 || deltaY != 0)
+        {
+            var maxXDistance = Math.Abs(deltaX) > maxSteps ? maxSteps * Math.Sign(deltaX) : deltaX;
+            var maxYDistance = Math.Abs(deltaY) > maxSteps ? maxSteps * Math.Sign(deltaY) : deltaY;
+            ++steps;
+
+            deltaX -= maxXDistance;
+            deltaY -= maxYDistance;
+        }
+
+        return steps;
     }
 }

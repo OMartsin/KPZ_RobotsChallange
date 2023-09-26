@@ -1,68 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MartsinOleksandr.RobotsChallange.Properties;
+using MartsinOleksandr.RobotsChallenge.Properties;
 using Robot.Common;
 
 namespace MartsinOleksandr.RobotsChallange
 {
     public class CellFinder
     {
-        public static ChargePointInfo FindNearestCell(Dictionary<ChargePointInfo, int> stationCoverageMap)
+        public static ChargePointInfo FindNearestCell(List<ChargePointInfo> stationCoverageMap)
         {
             if (stationCoverageMap == null || stationCoverageMap.Count == 0)
             {
                 return null;
             }
-            ChargePointInfo nearestCell = stationCoverageMap.Keys
+            ChargePointInfo nearestCell = stationCoverageMap
                 .OrderBy(cp => cp.Distance)
                 .First();
             return nearestCell;
         }
 
-        public static ChargePointInfo FindMostProfitableCellByStationsInCellCollect
-        (Dictionary<ChargePointInfo, int> stationCoverageMap, int currChargeModifier)
+        public static (Position, int)? FindMostProfitableCell
+        (List<ChargePointInfo> stationCoverageMap, ChargePointInfo currPosition, int robotEnergy)
         {
             if (stationCoverageMap == null || stationCoverageMap.Count == 0)
             {
                 return null;
             }
-            ChargePointInfo mostProfitableCell = null;
-            var tCurrChargeModifier = currChargeModifier;
+            Position mostProfitableCell = null;
+            var profit = Int32.MinValue;
             foreach (var cell in stationCoverageMap)
             {
-                if (tCurrChargeModifier < cell.Value)
-                {
-                    tCurrChargeModifier = cell.Value;
-                    mostProfitableCell = cell.Key;
-                }
-                if (mostProfitableCell != null && cell.Key.Distance > 0 &&  
-                    mostProfitableCell.Distance > cell.Key.Distance && tCurrChargeModifier == cell.Value)
-                {
-                    mostProfitableCell = cell.Key;
-                    tCurrChargeModifier = cell.Value;
-                }
+                var distance = cell.Distance;
+                var steps = RouteSplitter.CalculateStepsForOptimalStepsSplitter
+                    (currPosition.Position, cell.Position);
+                if (distance > robotEnergy) continue;
+                if (distance == 0) continue;
+                    var tempProfit = (cell.Stations.Sum(station => station.Energy) -
+                                      distance) - (steps * 50
+                                                   + currPosition.Stations.Sum(station => station.Energy));
+                if (tempProfit <= profit) continue;
+                profit = tempProfit;
+                mostProfitableCell = cell.Position;
             }
-            return mostProfitableCell;
-        }
-
-        public static ChargePointInfo FindMostProfitableCellByEnergyCollect(IList<EnergyStation> stations, 
-            Robot.Common.Robot robot)
-        {
-            ChargePointInfo mostProfitableCell = null;
-            int minDistance = int.MaxValue;
-            int maxEnergy = int.MinValue;
-            foreach (var station in stations)
-            {
-                int distance = DistanceHelper.FindDistance(station.Position, robot.Position);
-                if (station.Energy > maxEnergy || (station.Energy >= maxEnergy - 20 && distance < minDistance))
-                {
-                    maxEnergy = station.Energy;
-                    minDistance = distance;
-                    mostProfitableCell = new ChargePointInfo(station.Position, station, distance);
-                }
-            }
-            return mostProfitableCell;
+            return (mostProfitableCell, profit);
         }
     }
 }

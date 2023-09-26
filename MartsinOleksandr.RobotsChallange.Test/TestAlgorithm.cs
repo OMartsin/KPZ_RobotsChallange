@@ -3,7 +3,7 @@ using NUnit.Framework;
 using Robot.Common;
 using Assert = NUnit.Framework.Assert;
 
-namespace MartsinOleksandr.RobotsChallange.Test
+namespace MartsinOleksandr.RobotsChallenge.Test
 {
     [TestFixture]
     public class TestAlgorithm
@@ -53,7 +53,7 @@ namespace MartsinOleksandr.RobotsChallange.Test
                 new Robot.Common.Robot() { Energy = 200, Position = new Position(4, 4) }
             };
             var command = algorithm.DoStep(robots, 1, map);
-            Assert.IsTrue(command is CollectEnergyCommand);
+            Assert.IsTrue(command is null);
         }
 
         [Test]
@@ -79,7 +79,7 @@ namespace MartsinOleksandr.RobotsChallange.Test
             map.Stations.Add(new EnergyStation() { Energy = 1000, Position = stationPosition, RecoveryRate = 2 });
             var robots = new List<Robot.Common.Robot>()
             {
-                new Robot.Common.Robot() { Energy = 75, Position = new Position(2, 3) }
+                new Robot.Common.Robot() { Energy = 100, Position = new Position(2, 3) }
             };
             var command = algorithm.DoStep(robots, 0, map);
             Assert.IsTrue(command is MoveCommand);
@@ -142,7 +142,7 @@ namespace MartsinOleksandr.RobotsChallange.Test
                 new Robot.Common.Robot() { Energy = 200, Position = new Position(2, 3) }
             };
             var command = algorithm.DoStep(robots, 0, map);
-            Assert.IsTrue(command is MoveCommand); // Expect MoveCommand with multiple stations.
+            Assert.IsTrue(command is CollectEnergyCommand); // Expect MoveCommand with multiple stations.
         }
         [Test]
         public void TestMoveCommand_LowEnergy()

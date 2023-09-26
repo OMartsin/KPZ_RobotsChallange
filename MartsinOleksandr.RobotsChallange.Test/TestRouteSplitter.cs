@@ -2,7 +2,7 @@
 using NUnit.Framework;
 using Robot.Common;
 
-namespace MartsinOleksandr.RobotsChallange.Test
+namespace MartsinOleksandr.RobotsChallenge.Test
 {
     [TestFixture]
     public class TestRouteSplitter

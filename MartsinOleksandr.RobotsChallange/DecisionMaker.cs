@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using MartsinOleksandr.RobotsChallange.Properties;
+using System.Linq;
+using MartsinOleksandr.RobotsChallange;
+using MartsinOleksandr.RobotsChallenge.Properties;
 using Robot.Common;
 
-namespace MartsinOleksandr.RobotsChallange
+namespace MartsinOleksandr.RobotsChallenge
 {
     public class DecisionMaker
     {
@@ -27,63 +29,67 @@ namespace MartsinOleksandr.RobotsChallange
             {
                 return new CreateNewRobotCommand();
             }
-            var chargeCellsInfo = robotRadar.SearchFreeStationsInfo();
+            var chargeCellsInfo = robotRadar.SearchStationsInfo();
             if (currRobot.Energy < LowEnergy)
             {
                 return LowEnergyAlgorithm(chargeCellsInfo);
             }
-            var attackInfo = GetRobotsAttackProfit(robotRadar);
+
+            RobotCommand mostEffectiveCommand = null;
+            int energyProfit = Int32.MinValue;
+            var attackInfo = GetMostProfitableRobotToAttack(robotRadar);
             if (attackInfo.HasValue)
             {
                 var attackedRobot = attackInfo.Value.Key;
-                if (attackInfo.Value.Value > 0 &&
-                    DistanceHelper.FindDistance(attackedRobot.Position, currRobot.Position) < currRobot.Energy)
-                {
-                    return new MoveCommand() { NewPosition = attackedRobot.Position };
-                }
+                mostEffectiveCommand =  new MoveCommand() { NewPosition = attackedRobot.Position };
+                energyProfit = attackInfo.Value.Value;
             }
             if (_map.Stations == null || _map.Stations.Count == 0)
             {
-                return null;
+                return mostEffectiveCommand;
             }
-            var bigCommand = BigStationCollectEnergyAlgorithm();
-            if (bigCommand != null)
+            var currCellInfo = robotRadar.SearchStationsInCollectRadius();
+            var energySum = Int32.MinValue;
+            var mpc = CellFinder.FindMostProfitableCell(chargeCellsInfo, 
+                new ChargePointInfo(currRobot.Position, new EnergyStation[]{ }, 0), 
+                currRobot.Energy);
+            if (currCellInfo != null)
             {
-                return bigCommand;
+                energySum = currCellInfo.Stations.Sum(station => station.Energy);
+                mpc = CellFinder.FindMostProfitableCell(chargeCellsInfo, currCellInfo, currRobot.Energy);
             }
-            var numOfStationsInRadius = robotRadar.SearchStationsCountInCollectRadius();
-            var mpcByCollectNum = 
-                CellFinder.FindMostProfitableCellByStationsInCellCollect(chargeCellsInfo, numOfStationsInRadius);
-            if (mpcByCollectNum != null && 
-                RouteSplitter.CalculateEnergyForOptimalStepsSplitter
-                    (mpcByCollectNum.Position, currRobot.Position) <= 32)
+            if (energyProfit < energySum)
             {
-                return new MoveCommand()
+                energyProfit = energySum;
+                mostEffectiveCommand = new CollectEnergyCommand();
+            }
+            if (mpc.HasValue)
+            {
+                if (energyProfit < mpc.Value.Item2)
                 {
-                    NewPosition = RouteSplitter.OptimalStepsSplitter(currRobot.Position,mpcByCollectNum.Position)
-                };
+                    mostEffectiveCommand = new MoveCommand() { NewPosition = RouteSplitter.OptimalStepsSplitter(
+                        currRobot.Position,mpc.Value.Item1) };
+                }
             }
-            if ((mpcByCollectNum == null || RouteSplitter.CalculateEnergyForOptimalStepsSplitter
-                    (mpcByCollectNum.Position, currRobot.Position) > 100))
+            if (mostEffectiveCommand == null)
             {
-                return new CollectEnergyCommand();
+                LowEnergyAlgorithm(chargeCellsInfo);
             }
-            var freeNearestCell = CellFinder.FindNearestCell(chargeCellsInfo);
-            return new MoveCommand()
-            {
-                NewPosition = RouteSplitter.OptimalStepsSplitter(currRobot.Position,freeNearestCell.Position)
-            };
+            return mostEffectiveCommand;
         }
         
-        private RobotCommand LowEnergyAlgorithm(Dictionary<ChargePointInfo,int> chargeCellsInfo)
+        private RobotCommand LowEnergyAlgorithm(List<ChargePointInfo> chargeCellsInfo)
         {
             var currRobot = _robots[_robotToMoveIndex];
             var nearestCell = CellFinder.FindNearestCell(chargeCellsInfo);
+            if (nearestCell == null)
+            {
+                return null;
+            }
             if (nearestCell.Distance < currRobot.Energy)
             {
                 return new MoveCommand() { NewPosition = nearestCell.Position };
             }
-
             var pos = RouteSplitter.SplitRoute (currRobot.Position, nearestCell.Position,
                 currRobot.Energy - 4);
             if (pos == null)
@@ -96,47 +102,27 @@ namespace MartsinOleksandr.RobotsChallange
             };
         }
         
-        private KeyValuePair<Robot.Common.Robot, int>? GetRobotsAttackProfit(RobotRadar robotRadar)
+        private KeyValuePair<Robot.Common.Robot, int>? GetMostProfitableRobotToAttack
+            (RobotRadar robotRadar)
         {
             var robotsInfo = robotRadar.SearchDistanceToRobots();
             int profit = 0;
             Robot.Common.Robot robot = null;
             foreach (var robotInfo in robotsInfo)
             {
-                if (robotInfo.Value + 30 < (robotInfo.Key.Energy * 0.1) && robotInfo.Value < 50)
+                var tempProfit = (int)Math.Round(robotInfo.Key.Energy * 0.1) - (robotInfo.Value + 30);
+                if (tempProfit > 0 && tempProfit > profit && 
+                    robotInfo.Value < _robots[_robotToMoveIndex].Energy)
                 {
-                    profit = (int)Math.Round(robotInfo.Key.Energy * 0.1)  - (robotInfo.Value + 30);
+                    profit = tempProfit;
                     robot = robotInfo.Key;
                 }
             }
-
             if (robot == null)
             {
                 return null;
             }
             return new KeyValuePair<Robot.Common.Robot,int>(robot, profit);
         }
-
-        private RobotCommand BigStationCollectEnergyAlgorithm()
-        {
-            var currRobot = _robots[_robotToMoveIndex];
-            var mostProfitableCellByCollectEnergy =
-                CellFinder.FindMostProfitableCellByEnergyCollect(_map.Stations, currRobot);
-            if (mostProfitableCellByCollectEnergy.Distance < 9)
-            {
-                return new CollectEnergyCommand();
-            }
-            if (mostProfitableCellByCollectEnergy.Station.Energy > 120 && 
-                RouteSplitter.CalculateEnergyForOptimalStepsSplitter
-                    (currRobot.Position,mostProfitableCellByCollectEnergy.Position) < 
-                mostProfitableCellByCollectEnergy.Station.Energy)
-            {
-                return new MoveCommand()
-                { NewPosition = RouteSplitter.OptimalStepsSplitter
-                    (mostProfitableCellByCollectEnergy.Position,currRobot.Position) };
-            }
-            return null;
-        }
-
     }
 }

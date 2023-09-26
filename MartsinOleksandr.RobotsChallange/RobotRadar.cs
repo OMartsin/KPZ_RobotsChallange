@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MartsinOleksandr.RobotsChallange.Properties;
+using MartsinOleksandr.RobotsChallenge.Properties;
 using Robot.Common;
 
-namespace MartsinOleksandr.RobotsChallange
+namespace MartsinOleksandr.RobotsChallenge
 {
     public class RobotRadar
     {
@@ -21,13 +21,13 @@ namespace MartsinOleksandr.RobotsChallange
             _robotToMoveIndex = robotToMoveIndex;
         }
 
-        public Dictionary<ChargePointInfo, int> SearchFreeStationsInfo()
+        public List<ChargePointInfo> SearchStationsInfo()
         {
             IList<EnergyStation> stations = _map.Stations;
-            var stationCoverageMap = new Dictionary<ChargePointInfo, int>();
+            var stationCoverageMap = new List<ChargePointInfo>();
             foreach (var station in stations)
             {
-                if (!IsStationFree(station))
+                if (station.Energy == 0)
                 {
                     continue;
                 }
@@ -37,54 +37,45 @@ namespace MartsinOleksandr.RobotsChallange
                     for (var chargePointY = station.Position.Y - CollectionRange;
                          chargePointY < station.Position.Y + CollectionRange; ++chargePointY)
                     {
-                        Position chargePosition = new Position(chargePointX, chargePointY);
-                        var chargePositionInfo = new ChargePointInfo(chargePosition, station,
-                                DistanceHelper.FindDistance(chargePosition,_robots[_robotToMoveIndex].Position));
-                        if (stationCoverageMap.ContainsKey(chargePositionInfo))
+                        var targetPosition = new Position(chargePointX, chargePointY);
+                        ChargePointInfo existingElement = stationCoverageMap.
+                            FirstOrDefault(info => info.Position == targetPosition);
+                        if (existingElement != null)
                         {
-                            stationCoverageMap[chargePositionInfo]++;
+                            existingElement.Stations = existingElement.Stations.Concat(new[] { station }).ToArray();
                         }
                         else
                         {
-                            stationCoverageMap[chargePositionInfo] = 1;
+                            var newElement = new ChargePointInfo(targetPosition, new[] { station }, 
+                                RouteSplitter.CalculateEnergyForOptimalStepsSplitter
+                                    (_robots[_robotToMoveIndex].Position,station.Position));
+                            stationCoverageMap.Add(newElement);
                         }
                     }
                 }
             }
-            return stationCoverageMap.OrderByDescending(kv => kv.Value)
-                .ToDictionary(kv => kv.Key, kv => kv.Value);;
+            return stationCoverageMap;
         }
-        
-        private bool IsStationFree(EnergyStation station)
+
+        public ChargePointInfo SearchStationsInCollectRadius()
         {
-            foreach (var robot in _robots)
-            {
-                if(_robots.IndexOf(robot) == _robotToMoveIndex) continue;
-                if (robot.Position.X >= station.Position.X - CollectionRange &&
-                    robot.Position.X <= station.Position.X + CollectionRange &&
-                    robot.Position.Y <= station.Position.Y + CollectionRange &&
-                    robot.Position.Y >= station.Position.Y - CollectionRange)
-                    return false;
-            }
-            return true;
-        }
-        
-        public int SearchStationsCountInCollectRadius()
-        {
-            var count = 0;
+            ChargePointInfo posInfo = null;
             var currRobotPosition = _robots[_robotToMoveIndex].Position;
             foreach (var station in _map.Stations)
             {
-                if(IsStationFree(station) &&
+                if(station.Energy != 0 &&
                    station.Position.X >= currRobotPosition.X - CollectionRange &&
                    station.Position.X <= currRobotPosition.X + CollectionRange &&
                    station.Position.Y >= currRobotPosition.Y - CollectionRange &&
                    station.Position.Y <= currRobotPosition.Y + CollectionRange)
                 {
-                    ++count;
+                    if (posInfo == null) posInfo 
+                        = new ChargePointInfo(currRobotPosition, new[] { station }, 0);
+                    else posInfo.Stations 
+                        = posInfo.Stations.Concat(new[] { station }).ToArray();
                 }
             }
-            return count;
+            return posInfo;
         }
 
         public Dictionary<Robot.Common.Robot, int> SearchDistanceToRobots()
@@ -103,7 +94,7 @@ namespace MartsinOleksandr.RobotsChallange
 
         public int CountMyRobots()
         {
-            int count = 0;
+            int count = 1;
             foreach (var robot in _robots)
             {
                 if (string.Equals(robot.OwnerName, _robots[_robotToMoveIndex].OwnerName))

@@ -2,7 +2,7 @@
 using Robot.Common;
 using Assert = NUnit.Framework.Assert;
 
-namespace MartsinOleksandr.RobotsChallange.Test
+namespace MartsinOleksandr.RobotsChallenge.Test
 {
     [TestFixture]
     public class DistanceHelperTest
