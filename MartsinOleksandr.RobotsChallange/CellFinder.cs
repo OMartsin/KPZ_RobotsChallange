@@ -37,7 +37,7 @@ namespace MartsinOleksandr.RobotsChallange
                 if (distance > robotEnergy) continue;
                 if (distance == 0) continue;
                     var tempProfit = (cell.Stations.Sum(station => station.Energy) -
-                                      distance) - (steps * 50
+                                      distance) - (steps * 80
                                                    + currPosition.Stations.Sum(station => station.Energy));
                 if (tempProfit <= profit) continue;
                 profit = tempProfit;
